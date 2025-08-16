@@ -5,8 +5,16 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 import time
+from selenium.webdriver.chrome.options import Options
 
-driver = webdriver.Chrome()
+# Set up headless options
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+
+# Create the WebDriver instance
+driver = webdriver.Chrome(options=chrome_options)
 driver.maximize_window()
 driver.get("https://testing.qaautomationlabs.com/")
 driver.execute_script("window.scrollBy(0,500);")

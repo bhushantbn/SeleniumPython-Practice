@@ -3,9 +3,16 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 
-# Setup
-driver = webdriver.Chrome()
+# Set up headless options
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+
+# Create the WebDriver instance
+driver = webdriver.Chrome(options=chrome_options)
 wait = WebDriverWait(driver, 10)
 driver.maximize_window()
 # Navigate to site and click on "Form" link

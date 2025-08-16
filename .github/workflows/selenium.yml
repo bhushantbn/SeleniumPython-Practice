@@ -1,0 +1,59 @@
+name: Python Scripts CI
+
+on:
+  push:
+    branches:
+      - main # Adjust this to your main branch name (e.g., main, master)
+
+jobs:
+  run-scripts:
+    runs-on: ubuntu-latest # Use the latest Ubuntu environment
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x" # Specify your desired Python version
+
+      - name: Install dependencies (if any)
+        run: |
+          # Add your dependency installation commands here
+          # For example, if you use Selenium, you'd install it like this:
+          python -m pip install --upgrade pip
+          pip install selenium
+          pip install webdriver-manager # Optional, but highly recommended for Selenium
+
+      - name: Run all Python scripts
+        run: |
+          echo "Starting to run all Python scripts..."
+
+          # Method 1: Use a simple loop to run each file
+          # This is good for simple scripts that don't need complex arguments
+          for script in *.py; do
+            if [ -f "$script" ]; then
+              echo "Running $script..."
+              python "$script"
+              # Optional: Add a check to fail the build if a script fails
+              if [ $? -ne 0 ]; then
+                echo "::error::Script $script failed!"
+                exit 1
+              fi
+            fi
+          done
+
+          # Method 2: Use a Python-based test runner like pytest
+          # This is the recommended approach for more complex projects.
+          # It requires you to structure your scripts as tests.
+          # Install pytest first: `pip install pytest`
+          # Then, your scripts would look like `test_HandleAlert.py`
+          # and would contain functions like `def test_handle_alert():`
+          # run: |
+          #   pip install pytest
+          #   pytest
+
+      - name: Display a message on success
+        run: |
+          echo "All Python scripts ran successfully!"

@@ -1,9 +1,16 @@
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 
+# Set up headless options
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
 
-driver=webdriver.Chrome()
+# Create the WebDriver instance
+driver = webdriver.Chrome(options=chrome_options)
 
 driver.maximize_window()
 
