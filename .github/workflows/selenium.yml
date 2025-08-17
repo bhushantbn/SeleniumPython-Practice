@@ -3,11 +3,16 @@ name: Python Scripts CI
 on:
   push:
     branches:
-      - main # Adjust this to your main branch name (e.g., main, master)
+      - main
 
 jobs:
   run-scripts:
-    runs-on: ubuntu-latest # Use the latest Ubuntu environment
+    runs-on: ubuntu-latest
+
+    env:
+      RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}   # Email to send report to
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}         # e.g., smtp.gmail.com
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}             # e.g., 465 or 587
 
     steps:
       - name: Checkout repository
@@ -16,44 +21,69 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x" # Specify your desired Python version
+          python-version: "3.x"
 
-      - name: Install dependencies (if any)
+      - name: Install dependencies
         run: |
-          # Add your dependency installation commands here
-          # For example, if you use Selenium, you'd install it like this:
           python -m pip install --upgrade pip
           pip install selenium
-          pip install webdriver-manager # Optional, but highly recommended for Selenium
+          pip install webdriver-manager
+          pip install pytest pytest-html
+          pip install yagmail
 
-      - name: Run all Python scripts
+      - name: Run all Python scripts and generate HTML report
         run: |
           echo "Starting to run all Python scripts..."
+          mkdir -p reports
 
-          # Method 1: Use a simple loop to run each file
-          # This is good for simple scripts that don't need complex arguments
+          report_file="reports/report.html"
+
+          # Initialize report
+          echo "<html><body><h2>Python Scripts CI Report</h2><ul>" > $report_file
+
           for script in *.py; do
             if [ -f "$script" ]; then
               echo "Running $script..."
               python "$script"
-              # Optional: Add a check to fail the build if a script fails
               if [ $? -ne 0 ]; then
-                echo "::error::Script $script failed!"
-                exit 1
+                echo "<li><b>$script:</b> Failed</li>" >> $report_file
+              else
+                echo "<li><b>$script:</b> Success</li>" >> $report_file
               fi
             fi
           done
 
-          # Method 2: Use a Python-based test runner like pytest
-          # This is the recommended approach for more complex projects.
-          # It requires you to structure your scripts as tests.
-          # Install pytest first: `pip install pytest`
-          # Then, your scripts would look like `test_HandleAlert.py`
-          # and would contain functions like `def test_handle_alert():`
-          # run: |
-          #   pip install pytest
-          #   pytest
+          echo "</ul></body></html>" >> $report_file
+
+      - name: Upload HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-report
+          path: reports/report.html
+
+      - name: Send report via email
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}        # Your SMTP email
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}  # SMTP password or app password
+        run: |
+          python - <<EOF
+          import yagmail
+          import os
+
+          receiver = os.environ['RECEIVER_EMAIL']
+          smtp_server = os.environ['SMTP_SERVER']
+          smtp_port = int(os.environ['SMTP_PORT'])
+          user = os.environ['EMAIL_USER']
+          password = os.environ['EMAIL_PASSWORD']
+
+          subject = "Python Scripts CI Report"
+          body = "Hi,\n\nPlease find attached the latest Python scripts execution report."
+          filename = "reports/report.html"
+
+          yag = yagmail.SMTP(user=user, password=password, host=smtp_server, port=smtp_port, smtp_ssl=True)
+          yag.send(to=receiver, subject=subject, contents=body, attachments=filename)
+          EOF
 
       - name: Display a message on success
         run: |
-          echo "All Python scripts ran successfully!"
+          echo "All Python scripts ran successfully and report sent!"
