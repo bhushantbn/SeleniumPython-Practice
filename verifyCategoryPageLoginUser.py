@@ -1,54 +1,56 @@
-#verifyCategoryPageLoginUser.py
-
-
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# Set up headless options
+# Headless Chrome setup
 chrome_options = Options()
-chrome_options.add_argument("--headless")
+chrome_options.add_argument("--headless=new")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--window-size=1920,1080")
 
-# Create the WebDriver instance
-driver = webdriver.Chrome(options=chrome_options)
-
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=chrome_options)
+wait = WebDriverWait(driver, 20)
 driver.maximize_window()
 
 driver.get("https://shop.qaautomationlabs.com/index.php")
 
+# Login
 driver.find_element(By.ID,"email").send_keys("demo@demo.com")
 driver.find_element(By.ID,"password").send_keys("demo")
-loginButton=driver.find_element(By.ID,"loginBtn")
+driver.find_element(By.ID,"loginBtn").click()
 
-loginButton.click()
-expectedURL="https://shop.qaautomationlabs.com/shop.php"
-
-assert driver.current_url == expectedURL,f"assertion failed"
-
-print("passed")
+expectedURL = "https://shop.qaautomationlabs.com/shop.php"
+assert driver.current_url == expectedURL, "Login assertion failed"
+print("Login passed")
 
 time.sleep(2)
 
-actions=ActionChains(driver)
+# Reveal the "Shop" dropdown via JavaScript
+shop_menu = driver.find_element(By.XPATH, "//a[normalize-space()='Shop']")
+driver.execute_script("""
+arguments[0].classList.add('show'); 
+arguments[0].nextElementSibling.classList.add('show');
+""", shop_menu)
 
-hoverElement=driver.find_element(By.XPATH,"//a[text()='Shop ']")
+time.sleep(1)  # let JS changes apply
 
-actions.move_to_element(hoverElement).perform()
+# Click "View All" link using JS (avoids headless hover issues)
+view_all_link = driver.find_element(By.XPATH, "//a[normalize-space()='View All']")
+driver.execute_script("arguments[0].click();", view_all_link)
 
-hoveredElement=driver.find_element(By.XPATH,"//a[text()='View All']")
-
-hoveredElement.click()
 time.sleep(2)
 
-breadcrumb=driver.find_element(By.XPATH,"//a[text()='Shop']")
-# breadcrumb_text=breadcrumb.text
-assert breadcrumb.text=="Shop",f"Assertion failed"
+# Verify breadcrumb
+breadcrumb = driver.find_element(By.XPATH,"//a[text()='Shop']")
+assert breadcrumb.text == "Shop", "Breadcrumb assertion failed"
+print("Breadcrumb verified:", breadcrumb.text)
 
-print(breadcrumb.text)
-print("2nd assertion passed.")
 time.sleep(2)
 driver.quit()
